@@ -1,20 +1,43 @@
 package main
 
 import (
-	"fmt"
+	core_logger "RWBDwmoTask/internal/core/logger"
+	core_server "RWBDwmoTask/internal/core/transport/server"
+	"context"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"go.uber.org/zap"
 )
 
-//TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
 func main() {
-	//TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-	// to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-	s := "gopher"
-	fmt.Println("Hello and welcome, %s!", s)
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT, syscall.SIGTERM,
+	)
+	defer cancel()
 
-	for i := 1; i <= 5; i++ {
-		//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-		// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-		fmt.Println("i =", 100/i)
+	serverConfig := core_server.MustNewConfigServer()
+	time.Local = serverConfig.TimeZone
+
+	loggerConfig := core_logger.MustNewConfig()
+	logger, err := core_logger.NewLogger(loggerConfig)
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Close()
+
+	logger.Debug("starting server")
+
+	apiVersionRouters := core_server.NewAPIVersionRouter(core_server.ApiVersion1)
+
+	server := core_server.NewServer(serverConfig, logger)
+
+	server.ResisterApiVersionRouter(apiVersionRouters)
+	server.AddFrond()
+
+	if err := server.Start(ctx); err != nil {
+		logger.Error("failed to start server", zap.Error(err))
 	}
 }
