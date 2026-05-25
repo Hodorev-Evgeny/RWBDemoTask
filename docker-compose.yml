@@ -1,4 +1,14 @@
 services:
+  rwbtask-app:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: cmd/mainapp/Dockerfile
+    container_name: "rwbtask-app"
+    ports:
+      - "8080:8080"
+
   nats:
     image: nats:2.14.1-alpine
     container_name: trends-nats

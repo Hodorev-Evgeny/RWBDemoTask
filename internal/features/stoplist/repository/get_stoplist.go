@@ -12,7 +12,7 @@ func (r *RepositoryStopList) GetStopList(
 	limit *int,
 	offset *int,
 ) (core_domain.StopList, error) {
-	ctx, close := context.WithTimeout(ctx, 5*time.Second)
+	ctx, close := context.WithTimeout(ctx, 300*time.Millisecond)
 	defer close()
 
 	list, err := r.rds.SMembers(ctx, "stoplist:queries").Result()

@@ -106,12 +106,17 @@ func (s *Storage) Add(
 	sessionID string,
 	query string,
 	count int64) {
+	if query == "" || count <= 0 {
+		return
+	}
+
 	ctx, close := context.WithTimeout(context.Background(), 3*time.Second)
 	defer close()
 
 	ans, err := s.redis.Protect(ctx, userID, sessionID, query)
 	if err != nil {
 		fmt.Println("redis protect error:", err)
+		ans = true
 	}
 	if !ans {
 		return
@@ -120,8 +125,6 @@ func (s *Storage) Add(
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	CleanBuckets(s)
-
 	s.buckets = append(s.buckets, Bucket{
 		Start: time.Now(),
 		Query: query,
@@ -129,7 +132,6 @@ func (s *Storage) Add(
 	})
 
 	s.total[query] += count
-	Rebuild(s)
 }
 
 func (s *Storage) GetTop(limit int) []TopItem {

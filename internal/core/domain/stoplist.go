@@ -4,12 +4,12 @@ import "sync"
 
 type StopList struct {
 	mu   sync.RWMutex
-	List []string `json:"list"`
+	List map[string]struct{} `json:"list"`
 }
 
 func NewStopList(l []string) *StopList {
 	return &StopList{
-		List: l,
+		List: make(map[string]struct{}, len(l)),
 	}
 }
 
@@ -17,46 +17,33 @@ func (sl *StopList) Add(item string) {
 	sl.mu.Lock()
 	defer sl.mu.Unlock()
 
-	for _, v := range sl.List {
-		if v == item {
-			return
-		}
-	}
-
-	sl.List = append(sl.List, item)
+	sl.List[item] = struct{}{}
 }
 
 func (sl *StopList) Remove(item string) {
 	sl.mu.Lock()
 	defer sl.mu.Unlock()
 
-	for i, v := range sl.List {
-		if v == item {
-			sl.List = append(sl.List[:i], sl.List[i+1:]...)
-			return
-		}
-	}
+	delete(sl.List, item)
 }
 
 func (sl *StopList) IsBlocked(item string) bool {
 	sl.mu.RLock()
 	defer sl.mu.RUnlock()
 
-	for _, v := range sl.List {
-		if v == item {
-			return true
-		}
-	}
-
-	return false
+	_, ok := sl.List[item]
+	return ok
 }
 
 func (sl *StopList) Items() []string {
 	sl.mu.RLock()
 	defer sl.mu.RUnlock()
 
-	result := make([]string, len(sl.List))
-	copy(result, sl.List)
+	result := make([]string, 0, len(sl.List))
+
+	for item := range sl.List {
+		result = append(result, item)
+	}
 
 	return result
 }
