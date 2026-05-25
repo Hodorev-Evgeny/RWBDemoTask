@@ -28,12 +28,14 @@ type Storage struct {
 	total      map[string]int64
 	cachedTop  []TopItem
 	redis      *core_redis.RedisClient
+	stopList   *StopList
 }
 
 func NewStorage(
 	timeLife time.Duration,
 	bucketSize time.Duration,
 	redis *core_redis.RedisClient,
+	stopList *StopList,
 ) *Storage {
 	return &Storage{
 		mu:         sync.RWMutex{},
@@ -43,6 +45,7 @@ func NewStorage(
 		total:      make(map[string]int64),
 		cachedTop:  make([]TopItem, 0),
 		redis:      redis,
+		stopList:   stopList,
 	}
 }
 
@@ -67,6 +70,9 @@ func CleanBuckets(store *Storage) {
 func Rebuild(store *Storage) {
 	list := make([]TopItem, 0, len(store.total))
 	for query, count := range store.total {
+		if store.stopList.IsBlocked(query) {
+			continue
+		}
 		list = append(list, TopItem{
 			Query: query,
 			Count: count,
