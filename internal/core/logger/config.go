@@ -7,7 +7,6 @@ import (
 )
 
 type Config struct {
-	// Create setting for logger
 	Level  string `envconfig:"LEVEL" required:"true"`
 	Folder string `envconfig:"FOLDER" required:"true"`
 }

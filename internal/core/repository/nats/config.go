@@ -2,12 +2,16 @@ package core_nats
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 )
 
 type NatsConfig struct {
-	URL string `envconfig:"URL"`
+	URL           string        `envconfig:"URL"`
+	Name          string        `envconfig:"NAME"`
+	MaxReconnects int           `envconfig:"MAX_RECONNECTS"`
+	Timeout       time.Duration `envconfig:"TIMEOUT"`
 }
 
 func NewNatsConfig() (NatsConfig, error) {

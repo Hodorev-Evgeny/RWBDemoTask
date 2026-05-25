@@ -17,10 +17,10 @@ type Client struct {
 func New(ctx context.Context, cfg NatsConfig) (*Client, error) {
 	nc, err := nats.Connect(
 		cfg.URL,
-		nats.Name("trend-service"),
-		nats.MaxReconnects(-1),
+		nats.Name(cfg.Name),
+		nats.MaxReconnects(cfg.MaxReconnects),
 		nats.ReconnectWait(2*time.Second),
-		nats.Timeout(5*time.Second),
+		nats.Timeout(cfg.Timeout),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("connect to nats: %w", err)
