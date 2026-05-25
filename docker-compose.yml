@@ -1,0 +1,43 @@
+services:
+  rwbtask-app:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: cmd/mainapp/Dockerfile
+    container_name: "rwbtask-app"
+    ports:
+      - "8080:8080"
+
+  nats:
+    image: nats:2.14.1-alpine
+    container_name: trends-nats
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+
+  nats-box:
+    image: natsio/nats-box:0.19.5
+    container_name: trends-nats-box
+    depends_on:
+      - nats
+    command: ["sleep", "infinity"]
+    environment:
+      NATS_URL: nats://nats:4222
+
+  redis-db:
+    image: redis:8.2.6-bookworm
+    container_name: RWBDB
+    command: [ "redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}" ]
+    volumes:
+      - ${PROJECT_ROOT}/out/redisdata:/data
+    restart: always
+
+
+  forwarder-port-redis:
+    image: alpine/socat:1.8.0.3
+    container_name: rwb-redis-forwarder-port
+    command: "tcp-listen:6379,fork,reuseaddr tcp-connect:redis-db:6379"
+    ports:
+      - "127.0.0.1:6379:6379"
