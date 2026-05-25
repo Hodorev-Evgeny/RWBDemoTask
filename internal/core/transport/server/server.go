@@ -79,7 +79,12 @@ func (s *HTTPServer) ReadEvents(
 		}
 
 		fmt.Println("event from nats:", event.Query)
-		s.storage.Add(event.Query, 1)
+		s.storage.Add(
+			event.UserID,
+			event.SessionID,
+			event.Query,
+			1,
+		)
 
 		_ = msg.Ack()
 	})

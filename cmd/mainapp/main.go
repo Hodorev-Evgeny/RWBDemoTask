@@ -4,6 +4,7 @@ import (
 	core_domain "RWBDwmoTask/internal/core/domain"
 	core_logger "RWBDwmoTask/internal/core/logger"
 	core_nats "RWBDwmoTask/internal/core/repository/nats"
+	core_redis "RWBDwmoTask/internal/core/repository/redis"
 	core_server "RWBDwmoTask/internal/core/transport/server"
 	feature_repository_toplist "RWBDwmoTask/internal/features/toplist/repository"
 	feature_service_toplist "RWBDwmoTask/internal/features/toplist/service"
@@ -40,9 +41,13 @@ func main() {
 		panic(err)
 	}
 
+	redisConfig := core_redis.MustGetRedisConfig()
+	redisClient := core_redis.CreateRedisClientMust(redisConfig)
+
 	storeg := core_domain.NewStorage(
 		5*time.Minute,
 		5*time.Second,
+		redisClient,
 	)
 	go storeg.Run()
 

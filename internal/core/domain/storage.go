@@ -1,6 +1,9 @@
 package core_domain
 
 import (
+	core_redis "RWBDwmoTask/internal/core/repository/redis"
+	"context"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -24,11 +27,13 @@ type Storage struct {
 	buckets    []Bucket
 	total      map[string]int64
 	cachedTop  []TopItem
+	redis      *core_redis.RedisClient
 }
 
 func NewStorage(
 	timeLife time.Duration,
 	bucketSize time.Duration,
+	redis *core_redis.RedisClient,
 ) *Storage {
 	return &Storage{
 		mu:         sync.RWMutex{},
@@ -37,6 +42,7 @@ func NewStorage(
 		buckets:    make([]Bucket, 0, 60),
 		total:      make(map[string]int64),
 		cachedTop:  make([]TopItem, 0),
+		redis:      redis,
 	}
 }
 
@@ -90,8 +96,21 @@ func (s *Storage) Run() {
 }
 
 func (s *Storage) Add(
+	userID int64,
+	sessionID string,
 	query string,
 	count int64) {
+	ctx, close := context.WithTimeout(context.Background(), 3*time.Second)
+	defer close()
+
+	ans, err := s.redis.Protect(ctx, userID, sessionID, query)
+	if err != nil {
+		fmt.Println("redis protect error:", err)
+	}
+	if !ans {
+		return
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
