@@ -5,7 +5,9 @@ import (
 	core_logger "RWBDwmoTask/internal/core/logger"
 	core_nats "RWBDwmoTask/internal/core/repository/nats"
 	core_redis "RWBDwmoTask/internal/core/repository/redis"
+	storage2 "RWBDwmoTask/internal/core/storage"
 	core_server "RWBDwmoTask/internal/core/transport/server"
+	feature_ingest "RWBDwmoTask/internal/features/ingest"
 	feature_repository_stoplist "RWBDwmoTask/internal/features/stoplist/repository"
 	feature_service_stoplist "RWBDwmoTask/internal/features/stoplist/service"
 	feature_transport_stoplist "RWBDwmoTask/internal/features/stoplist/transport"
@@ -47,36 +49,39 @@ func main() {
 	redisConfig := core_redis.MustGetRedisConfig()
 	redisClient := core_redis.CreateRedisClientMust(redisConfig)
 
-	stoplist := core_domain.NewStopList(make([]string, 0))
+	list, err := redisClient.GetStoplist(ctx)
+	if err != nil {
+		panic(err)
+	}
+	stopList := core_domain.NewStopList(list)
 
-	storeg := core_domain.NewStorage(
+	storage := storage2.NewStorage(
 		5*time.Minute,
-		5*time.Second,
 		redisClient,
-		stoplist,
+		stopList,
 	)
-	go storeg.Run()
+	go storage.Run(ctx)
 
-	listrepositoy := feature_repository_toplist.NewNatsRepository(storeg)
-	listservise := feature_service_toplist.NewNatsService(listrepositoy)
-	listtransport := feature_transport_toplist.NewTransportTopList(listservise)
-	listRoute := listtransport.Router()
+	topListRepository := feature_repository_toplist.NewNatsRepository(storage)
+	topListService := feature_service_toplist.NewNatsService(topListRepository)
+	topListTransport := feature_transport_toplist.NewTransportTopList(topListService)
+	topListRoutes := topListTransport.Router()
 
-	stoplistrepositoy := feature_repository_stoplist.NewRepositoryStopList(redisClient)
-	stoplistservise := feature_service_stoplist.NewServiceStopList(stoplistrepositoy, stoplist)
-	stoplisttransport := feature_transport_stoplist.NewTransportStopList(stoplistservise)
-	stoplistRoute := stoplisttransport.Router()
+	stopListRepository := feature_repository_stoplist.NewRepositoryStopList(redisClient)
+	stopListService := feature_service_stoplist.NewServiceStopList(stopListRepository, stopList)
+	stopListTransport := feature_transport_stoplist.NewTransportStopList(stopListService)
+	stopListRoutes := stopListTransport.Router()
 
 	apiVersionRouters := core_server.NewAPIVersionRouter(core_server.ApiVersion1)
 
-	server := core_server.NewServer(serverConfig, logger, storeg)
-
+	server := core_server.NewServer(serverConfig, logger, storage)
 	server.ResisterApiVersionRouter(apiVersionRouters)
-	server.RegisterRoutes(listRoute...)
-	server.RegisterRoutes(stoplistRoute...)
+	server.RegisterRoutes(topListRoutes...)
+	server.RegisterRoutes(stopListRoutes...)
 
+	nats_cunsomer := feature_ingest.NewNatsConsumer(natsClient.JS, storage)
 	go func() {
-		if err := server.ReadEvents(ctx, natsClient.JS); err != nil {
+		if err := nats_cunsomer.ReadEvents(ctx); err != nil {
 			logger.Error("read nats events error", zap.Error(err))
 		}
 	}()

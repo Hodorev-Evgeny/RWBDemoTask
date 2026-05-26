@@ -1,7 +1,7 @@
-package core_domain
+package core_storage
 
 import (
-	core_redis "RWBDwmoTask/internal/core/repository/redis"
+	"RWBDwmoTask/internal/core/domain"
 	"context"
 	"fmt"
 	"sort"
@@ -9,6 +9,14 @@ import (
 	"time"
 )
 
+type rdbClient interface {
+	Protect(
+		ctx context.Context,
+		userID int64,
+		sessionID string,
+		query string,
+	) (bool, error)
+}
 type Bucket struct {
 	Start time.Time
 	Query string
@@ -21,31 +29,28 @@ type TopItem struct {
 }
 
 type Storage struct {
-	mu         sync.RWMutex
-	timeLife   time.Duration
-	bucketSize time.Duration
-	buckets    []Bucket
-	total      map[string]int64
-	cachedTop  []TopItem
-	redis      *core_redis.RedisClient
-	stopList   *StopList
+	mu        sync.RWMutex
+	timeLife  time.Duration
+	buckets   []Bucket
+	total     map[string]int64
+	cachedTop []TopItem
+	redis     rdbClient
+	stopList  *core_domain.StopList
 }
 
 func NewStorage(
 	timeLife time.Duration,
-	bucketSize time.Duration,
-	redis *core_redis.RedisClient,
-	stopList *StopList,
+	redis rdbClient,
+	stopList *core_domain.StopList,
 ) *Storage {
 	return &Storage{
-		mu:         sync.RWMutex{},
-		timeLife:   timeLife,
-		bucketSize: bucketSize,
-		buckets:    make([]Bucket, 0, 60),
-		total:      make(map[string]int64),
-		cachedTop:  make([]TopItem, 0),
-		redis:      redis,
-		stopList:   stopList,
+		mu:        sync.RWMutex{},
+		timeLife:  timeLife,
+		buckets:   make([]Bucket, 0, 60),
+		total:     make(map[string]int64),
+		cachedTop: make([]TopItem, 0),
+		redis:     redis,
+		stopList:  stopList,
 	}
 }
 
@@ -89,15 +94,20 @@ func Rebuild(store *Storage) {
 	store.cachedTop = list
 }
 
-func (s *Storage) Run() {
+func (s *Storage) Run(ctx context.Context) {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		s.mu.Lock()
-		CleanBuckets(s)
-		Rebuild(s)
-		s.mu.Unlock()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.mu.Lock()
+			CleanBuckets(s)
+			Rebuild(s)
+			s.mu.Unlock()
+		}
 	}
 }
 

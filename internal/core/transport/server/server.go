@@ -1,16 +1,13 @@
 package core_server
 
 import (
-	core_domain "RWBDwmoTask/internal/core/domain"
 	core_logger "RWBDwmoTask/internal/core/logger"
+	storage2 "RWBDwmoTask/internal/core/storage"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
-	"github.com/nats-io/nats.go/jetstream"
 	"go.uber.org/zap"
 )
 
@@ -18,13 +15,13 @@ type HTTPServer struct {
 	mux     *http.ServeMux
 	config  ServerConfig
 	log     *core_logger.Logger
-	storage *core_domain.Storage
+	storage *storage2.Storage
 }
 
 func NewServer(
 	config ServerConfig,
 	log *core_logger.Logger,
-	storage *core_domain.Storage,
+	storage *storage2.Storage,
 ) *HTTPServer {
 	return &HTTPServer{
 		mux:     http.NewServeMux(),
@@ -44,58 +41,6 @@ func (s *HTTPServer) ResisterApiVersionRouter(routers ...*APIVersionRouter) {
 		)
 	}
 
-}
-
-func (s *HTTPServer) ReadEvents(
-	ctx context.Context,
-	js jetstream.JetStream,
-) error {
-	stream, err := js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
-		Name:     "SEARCH",
-		Subjects: []string{"search.events"},
-		MaxAge:   10 * time.Minute,
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Read events stream")
-	consumer, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
-		Durable:       "trend-service",
-		FilterSubject: "search.events",
-		AckPolicy:     jetstream.AckExplicitPolicy,
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Read events consumer")
-	consumerCtx, err := consumer.Consume(func(msg jetstream.Msg) {
-		var event core_domain.SearchEvent
-
-		if err := json.Unmarshal(msg.Data(), &event); err != nil {
-			_ = msg.Ack()
-			return
-		}
-
-		fmt.Println("event from nats:", event.Query)
-		s.storage.Add(
-			event.UserID,
-			event.SessionID,
-			event.Query,
-			1,
-		)
-
-		_ = msg.Ack()
-	})
-	if err != nil {
-		return err
-	}
-
-	<-ctx.Done()
-	consumerCtx.Stop()
-
-	return err
 }
 
 func (s *HTTPServer) RegisterRoutes(routes ...Route) {

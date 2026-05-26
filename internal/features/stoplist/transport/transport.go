@@ -10,8 +10,6 @@ import (
 type ServiceStopList interface {
 	GetStopList(
 		ctx context.Context,
-		limit *int,
-		offset *int,
 	) (*core_domain.StopList, error)
 
 	DeleteStopList(

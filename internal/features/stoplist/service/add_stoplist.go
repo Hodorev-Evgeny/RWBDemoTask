@@ -20,5 +20,6 @@ func (s *ServiceStopList) AddStopList(
 	}
 
 	s.stopList.Add(item)
+	fmt.Println(s.stopList.Items())
 	return nil
 }

@@ -1,32 +1,35 @@
 package feature_transport_stoplist
 
 import (
+	core_domain "RWBDwmoTask/internal/core/domain"
 	"RWBDwmoTask/internal/core/transport/http/response"
-	core_http_utils "RWBDwmoTask/internal/core/transport/http/utils"
+	"fmt"
 	"net/http"
 )
 
+type StopListResponse struct {
+	List []string `json:"list"`
+}
+
 func (t *TransportStopList) GetStopList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	//log := core_logger.FromContext(ctx)
 	responseHandler := response.NewHandlerResponse(nil, w)
 
-	limit, err := core_http_utils.GetIntQueryParm(r, "limit")
-	if err != nil {
-		responseHandler.ErrorResponse(err, "limit is required")
-		return
-	}
-	offset, err := core_http_utils.GetIntQueryParm(r, "offset")
-	if err != nil {
-		responseHandler.ErrorResponse(err, "offset is required")
-		return
-	}
-
-	list, err := t.serviceStopList.GetStopList(ctx, limit, offset)
+	list, err := t.serviceStopList.GetStopList(ctx)
 	if err != nil {
 		responseHandler.ErrorResponse(err, err.Error())
 		return
 	}
 
-	responseHandler.JSONResponseHandler(http.StatusOK, list)
+	req := DomainFromResponse(list)
+	fmt.Println(req)
+	responseHandler.JSONResponseHandler(http.StatusOK, req)
+}
+
+func DomainFromResponse(
+	list *core_domain.StopList,
+) StopListResponse {
+	return StopListResponse{
+		List: list.Items(),
+	}
 }

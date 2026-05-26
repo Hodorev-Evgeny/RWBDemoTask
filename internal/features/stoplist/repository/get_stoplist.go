@@ -9,21 +9,19 @@ import (
 
 func (r *RepositoryStopList) GetStopList(
 	ctx context.Context,
-	limit *int,
-	offset *int,
-) (core_domain.StopList, error) {
+) (*core_domain.StopList, error) {
 	ctx, close := context.WithTimeout(ctx, 300*time.Millisecond)
 	defer close()
 
-	list, err := r.rds.SMembers(ctx, "stoplist:queries").Result()
+	list, err := r.rds.GetStoplist(ctx)
 	if err != nil {
-		return core_domain.StopList{}, fmt.Errorf("get stop list: %w", err)
+		return nil, fmt.Errorf("get stop list: %w", err)
 	}
 
 	listDomain := core_domain.NewStopList(list)
 	if listDomain == nil {
-		return core_domain.StopList{}, nil
+		return nil, nil
 	}
 
-	return *listDomain, nil
+	return listDomain, nil
 }

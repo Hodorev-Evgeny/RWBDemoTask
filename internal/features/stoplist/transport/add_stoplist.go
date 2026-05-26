@@ -16,8 +16,7 @@ func (t *TransportStopList) AddStopList(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = t.serviceStopList.AddStopList(ctx, key)
-	if err != nil {
+	if err := t.serviceStopList.AddStopList(ctx, key); err != nil {
 		responseHandler.ErrorResponse(err, "error adding stop list")
 		return
 	}
