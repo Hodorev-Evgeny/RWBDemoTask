@@ -3,12 +3,16 @@ package feature_service_stoplist
 import (
 	core_domain "RWBDwmoTask/internal/core/domain"
 	"context"
+	"fmt"
 )
 
 func (s *ServiceStopList) GetStopList(
 	ctx context.Context,
-	limit *int,
-	offset *int,
 ) (*core_domain.StopList, error) {
-	return core_domain.NewStopList(s.stopList.Items()), nil
+	list, err := s.repository.GetStopList(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get stop list on service: %w", err)
+	}
+
+	return list, nil
 }

@@ -49,6 +49,18 @@ func (r *RedisClient) Protect(
 	return ok, nil
 }
 
+func (r *RedisClient) GetStoplist(ctx context.Context) ([]string, error) {
+	ctx, close := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer close()
+
+	list, err := r.SMembers(ctx, "stoplist:queries").Result()
+	if err != nil {
+		return nil, fmt.Errorf("get stop list: %w", err)
+	}
+
+	return list, nil
+}
+
 func (r *RedisClient) Close() error {
 	return r.Client.Close()
 }

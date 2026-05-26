@@ -8,9 +8,7 @@ import (
 type RepositoryStopList interface {
 	GetStopList(
 		ctx context.Context,
-		limit *int,
-		offset *int,
-	) (core_domain.StopList, error)
+	) (*core_domain.StopList, error)
 
 	DeleteStopList(
 		ctx context.Context,
