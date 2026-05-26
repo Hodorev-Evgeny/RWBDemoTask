@@ -1,9 +1,15 @@
 package feature_transport_stoplist
 
 import (
+	core_domain "RWBDwmoTask/internal/core/domain"
 	"RWBDwmoTask/internal/core/transport/http/response"
+	"fmt"
 	"net/http"
 )
+
+type StopListResponse struct {
+	List []string `json:"list"`
+}
 
 func (t *TransportStopList) GetStopList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -15,5 +21,15 @@ func (t *TransportStopList) GetStopList(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	responseHandler.JSONResponseHandler(http.StatusOK, list)
+	req := DomainFromResponse(list)
+	fmt.Println(req)
+	responseHandler.JSONResponseHandler(http.StatusOK, req)
+}
+
+func DomainFromResponse(
+	list *core_domain.StopList,
+) StopListResponse {
+	return StopListResponse{
+		List: list.Items(),
+	}
 }

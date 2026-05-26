@@ -5,7 +5,9 @@ import (
 	core_logger "RWBDwmoTask/internal/core/logger"
 	core_nats "RWBDwmoTask/internal/core/repository/nats"
 	core_redis "RWBDwmoTask/internal/core/repository/redis"
+	storage2 "RWBDwmoTask/internal/core/storage"
 	core_server "RWBDwmoTask/internal/core/transport/server"
+	feature_ingest "RWBDwmoTask/internal/features/ingest"
 	feature_repository_stoplist "RWBDwmoTask/internal/features/stoplist/repository"
 	feature_service_stoplist "RWBDwmoTask/internal/features/stoplist/service"
 	feature_transport_stoplist "RWBDwmoTask/internal/features/stoplist/transport"
@@ -53,13 +55,12 @@ func main() {
 	}
 	stopList := core_domain.NewStopList(list)
 
-	storage := core_domain.NewStorage(
+	storage := storage2.NewStorage(
 		5*time.Minute,
-		5*time.Second,
 		redisClient,
 		stopList,
 	)
-	go storage.Run()
+	go storage.Run(ctx)
 
 	topListRepository := feature_repository_toplist.NewNatsRepository(storage)
 	topListService := feature_service_toplist.NewNatsService(topListRepository)
@@ -78,8 +79,9 @@ func main() {
 	server.RegisterRoutes(topListRoutes...)
 	server.RegisterRoutes(stopListRoutes...)
 
+	nats_cunsomer := feature_ingest.NewNatsConsumer(natsClient.JS, storage)
 	go func() {
-		if err := server.ReadEvents(ctx, natsClient.JS); err != nil {
+		if err := nats_cunsomer.ReadEvents(ctx); err != nil {
 			logger.Error("read nats events error", zap.Error(err))
 		}
 	}()

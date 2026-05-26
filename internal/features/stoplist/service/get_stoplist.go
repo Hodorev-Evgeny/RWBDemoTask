@@ -9,10 +9,9 @@ import (
 func (s *ServiceStopList) GetStopList(
 	ctx context.Context,
 ) (*core_domain.StopList, error) {
-	list, err := s.repository.GetStopList(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get stop list on service: %w", err)
-	}
+	list := s.stopList.Items()
+	reqStopList := core_domain.NewStopList(list)
+	fmt.Println(reqStopList, "in service")
 
-	return list, nil
+	return reqStopList, nil
 }

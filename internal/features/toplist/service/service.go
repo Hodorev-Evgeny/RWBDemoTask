@@ -1,7 +1,7 @@
 package feature_service_toplist
 
 import (
-	core_domain "RWBDwmoTask/internal/core/domain"
+	core_domain "RWBDwmoTask/internal/core/storage"
 	"context"
 )
 

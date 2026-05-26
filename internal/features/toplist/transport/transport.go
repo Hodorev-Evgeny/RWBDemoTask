@@ -1,7 +1,7 @@
 package feature_transport_toplist
 
 import (
-	core_domain "RWBDwmoTask/internal/core/domain"
+	core_domain "RWBDwmoTask/internal/core/storage"
 	core_server "RWBDwmoTask/internal/core/transport/server"
 	"context"
 	"net/http"

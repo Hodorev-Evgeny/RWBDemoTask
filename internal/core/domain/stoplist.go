@@ -8,9 +8,15 @@ type StopList struct {
 }
 
 func NewStopList(l []string) *StopList {
-	return &StopList{
+	stopList := &StopList{
 		List: make(map[string]struct{}, len(l)),
 	}
+
+	for _, item := range l {
+		stopList.List[item] = struct{}{}
+	}
+
+	return stopList
 }
 
 func (sl *StopList) Add(item string) {

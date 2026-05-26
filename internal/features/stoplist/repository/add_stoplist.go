@@ -6,5 +6,5 @@ func (r *RepositoryStopList) AddStopList(
 	ctx context.Context,
 	item string,
 ) error {
-	return r.rds.SAdd(ctx, "stop_list", item).Err()
+	return r.rds.SAdd(ctx, "stoplist:queries", item).Err()
 }
