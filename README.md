@@ -280,17 +280,6 @@ curl "http://localhost:8080/toplist?limit=10"
 ### 2. Отправить тестовое событие
 
 ```bash
-nats --server nats://localhost:4222 pub search.events '{
-  "query": "iphone 15",
-  "user_id": 456,
-  "session_id": "session-789",
-  "time_event": "2026-05-25T18:45:00Z"
-}'
-```
-
-Или через `nats-box`:
-
-```bash
 docker compose exec nats-box nats pub search.events '{
   "query": "iphone 15",
   "user_id": 456,
